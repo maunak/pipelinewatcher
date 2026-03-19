@@ -18,7 +18,6 @@ A VS Code extension for monitoring Microsoft Fabric data pipeline runs.
 ## Requirements
 
 - VS Code 1.85+
-- Azure CLI installed and signed in (`az login`)
 - Access to a Microsoft Fabric workspace
 
 ---
