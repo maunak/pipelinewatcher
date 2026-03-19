@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none';
+                 style-src {{WEBVIEW_CSP_SOURCE}} 'unsafe-inline';
+                 script-src {{WEBVIEW_CSP_SOURCE}} 'nonce-{{NONCE}}';
+                 img-src data:;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{CSS_URI}}" />
+  <title>PipelineWatch</title>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Toolbar ── -->
+  <header class="toolbar">
+    <div class="toolbar-left">
+      <span class="brand"><span class="brand-fabric">Fabric</span> Pipeline Watcher</span>
+
+      <select id="tenant-select" class="select" title="Active tenant">
+        <option value="">— No tenant —</option>
+      </select>
+
+      <div class="ws-picker" id="ws-picker">
+        <button class="ws-picker-toggle" id="ws-picker-toggle" title="Filter by workspace">
+          <span id="ws-picker-label">All workspaces</span>
+          <span class="ws-picker-arrow">▾</span>
+        </button>
+        <div class="ws-picker-dropdown hidden" id="ws-picker-dropdown">
+          <input type="text" class="ws-picker-search" id="ws-picker-search"
+                 placeholder="Search…" autocomplete="off" />
+          <ul class="ws-picker-list" id="ws-picker-list"></ul>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <input type="text" id="filter-input" class="input" placeholder="Filter pipelines…" autocomplete="off" />
+        <button id="btn-clear-filter" class="btn-icon" title="Clear filter" style="display:none">✕</button>
+      </div>
+
+      <label class="toggle-label" title="Show only starred pipelines">
+        <input type="checkbox" id="favorites-only" />
+        <span>★ Favorites</span>
+      </label>
+
+      <span class="filter-sep"></span>
+
+      <div class="status-filters" id="status-filters">
+        <button class="status-filter-btn" data-status="Failed"     title="Show failed pipelines">Failed</button>
+        <button class="status-filter-btn" data-status="Succeeded"  title="Show succeeded pipelines">Succeeded</button>
+        <button class="status-filter-btn" data-status="neverRun"   title="Show pipelines with no runs">Never run</button>
+        <button class="status-filter-btn" data-status="InProgress" title="Show in-progress pipelines">In Progress</button>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <span id="last-refreshed" class="muted text-xs"></span>
+      <button id="btn-help" class="btn-help" title="Quick start guide">?</button>
+      <button id="btn-export-dashboard" class="btn btn-secondary" title="Export all pipelines as CSV">↓ Export CSV</button>
+      <button id="btn-refresh" class="btn btn-secondary" title="Refresh now">↺ Refresh</button>
+      <button id="btn-add-tenant" class="btn btn-primary">+ Add Tenant</button>
+    </div>
+  </header>
+
+  <!-- ── Loading bar ── -->
+  <div id="loading-bar" class="loading-bar hidden">
+    <div class="loading-bar-fill"></div>
+  </div>
+
+  <!-- ── Icon legend bar ── -->
+  <div id="icon-legend" class="icon-legend">
+    <span class="icon-legend-title">Row actions (hover a pipeline to see):</span>
+    <span class="icon-legend-item"><kbd>↺</kbd> Refresh last run</span>
+    <span class="icon-legend-item"><kbd>⬇</kbd> Fetch full history</span>
+    <span class="icon-legend-item"><kbd>▶</kbd> Re-run pipeline</span>
+    <span class="icon-legend-item"><kbd>📋</kbd> Copy Run ID</span>
+    <span class="icon-legend-item"><kbd>🔗</kbd> Open in Fabric</span>
+    <span class="icon-legend-item"><kbd>📊</kbd> View history</span>
+    <button id="icon-legend-close" class="icon-legend-close" title="Dismiss">✕</button>
+  </div>
+
+  <!-- ── Toast notification ── -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ── Main content ── -->
+  <main id="main">
+
+    <!-- Empty state: no tenants -->
+    <div id="empty-tenants" class="empty-state hidden">
+      <p class="empty-icon">◈</p>
+      <p class="empty-title">No tenants configured</p>
+      <p class="empty-sub">Add your first Azure tenant to start monitoring Fabric pipelines.</p>
+      <button class="btn btn-primary" id="btn-empty-add-tenant">+ Add Tenant</button>
+    </div>
+
+    <!-- Pipeline table -->
+    <div id="table-wrap" class="table-wrap hidden">
+      <table class="pipeline-table" id="pipeline-table">
+        <thead>
+          <tr>
+            <th class="col-star" title="Favorite"></th>
+            <th class="col-name sortable" data-col="name">Name <span class="sort-arrow">▾</span></th>
+            <th class="col-workspace sortable" data-col="workspace">Workspace <span class="sort-arrow"></span></th>
+            <th class="col-status sortable" data-col="status">Last Run <span class="sort-arrow"></span></th>
+            <th class="col-duration sortable" data-col="duration">Duration <span class="sort-arrow"></span></th>
+            <th class="col-dur-avg" title="Average duration (all runs)">Avg</th>
+            <th class="col-dur-min" title="Min duration (succeeded only)">Min ✓</th>
+            <th class="col-dur-max" title="Max duration (succeeded only)">Max ✓</th>
+            <th class="col-rate sortable" data-col="rate">7d Rate <span class="sort-arrow"></span></th>
+            <th class="col-runs" title="Total runs in local cache">Runs</th>
+          </tr>
+        </thead>
+        <tbody id="pipeline-tbody"></tbody>
+      </table>
+
+      <div id="no-results" class="no-results hidden">No pipelines match the current filters.</div>
+    </div>
+
+  </main>
+
+  <!-- ── Help modal ── -->
+  <div id="help-overlay" class="modal-overlay hidden">
+    <div class="modal help-modal">
+      <div class="help-header">
+        <h3>Fabric Pipeline Watcher — Quick Guide</h3>
+        <button id="btn-help-close" class="btn-help-close" title="Close">✕</button>
+      </div>
+
+      <div class="help-content">
+        <section>
+          <h4>Getting Started</h4>
+          <ul>
+            <li><strong>Add Tenant</strong> — click <kbd>+ Add Tenant</kbd> and enter your Azure tenant ID</li>
+            <li><strong>Favorites</strong> — click <kbd>☆</kbd> on a pipeline to pin it; favorites load first on startup</li>
+            <li><strong>Workspace filter</strong> — use the workspace picker to focus on one workspace, star or blacklist workspaces</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Dashboard</h4>
+          <ul>
+            <li><strong>Search</strong> — filter by pipeline or workspace name</li>
+            <li><strong>Status pills</strong> — filter by Failed, Succeeded, Never run, In Progress (multi-select)</li>
+            <li><strong>Sort</strong> — click any column header to sort ascending/descending</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Quick Actions</h4>
+          <p>Hover a row to reveal action buttons:</p>
+          <ul>
+            <li><kbd>↺</kbd> Refresh last run &nbsp; <kbd>⬇</kbd> Fetch full history &nbsp; <kbd>▶</kbd> Re-run pipeline</li>
+            <li><kbd>📋</kbd> Copy Run ID &nbsp; <kbd>🔗</kbd> Open in Fabric &nbsp; <kbd>📊</kbd> View history panel</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>History Panel</h4>
+          <ul>
+            <li><strong>Chart</strong> — duration over time with color-coded statuses</li>
+            <li><strong>Annotations</strong> — add notes on specific dates (click 📝 icon)</li>
+            <li><strong>Period</strong> — switch between 7d, 30d, 90d, or all</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Alerts &amp; Patterns</h4>
+          <ul>
+            <li>Failure notifications appear automatically as VS Code alerts for favorited pipelines</li>
+            <li>Configure <strong>daily report time</strong> in settings (default 18:00)</li>
+            <li>Pattern detection warns if a pipeline fails repeatedly on the same day or time window</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Settings</h4>
+          <p>Open VS Code settings and search <kbd>pipelineWatch</kbd>:</p>
+          <ul>
+            <li><code>pollingInterval</code> — auto-refresh rate in seconds (default 60)</li>
+            <li><code>retentionDays</code> — days to keep history (default 90)</li>
+            <li><code>batchSize</code> / <code>batchDelayMs</code> — tune API batch loading</li>
+            <li><code>blacklistedWorkspaces</code> — exclude workspaces by name or ID</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script nonce="{{NONCE}}" src="{{JS_URI}}"></script>
+</body>
+</html>

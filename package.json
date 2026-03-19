@@ -1,0 +1,151 @@
+{
+  "name": "pipelinewatcher",
+  "displayName": "Fabric Pipeline Watcher",
+  "description": "Real-time Microsoft Fabric data pipeline monitor for VS Code",
+  "version": "1.0.0",
+  "publisher": "maunak",
+  "author": {
+    "name": "Maunak"
+  },
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maunak/pipelinewatch"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["fabric", "microsoft", "pipeline", "monitor", "azure"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pipelinewatch-sidebar",
+          "title": "Fabric Pipeline Watcher",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pipelinewatch-sidebar": [
+        {
+          "id": "pipelineWatch.launchView",
+          "name": "Fabric Pipeline Watcher",
+          "type": "tree"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "pipelineWatch.launchView",
+        "contents": "Monitor your Microsoft Fabric data pipelines in real time.\n\n[$(pulse) Open Dashboard](command:pipelineWatch.openDashboard)\n\n[$(add) Add Tenant](command:pipelineWatch.addTenant)\n\n[$(trash) Clear History](command:pipelineWatch.clearHistory)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "pipelineWatch.openDashboard",
+        "title": "PipelineWatch: Open Dashboard",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "pipelineWatch.addTenant",
+        "title": "PipelineWatch: Add Tenant"
+      },
+      {
+        "command": "pipelineWatch.exportHistory",
+        "title": "PipelineWatch: Export History (CSV)"
+      },
+      {
+        "command": "pipelineWatch.clearHistory",
+        "title": "PipelineWatch: Clear Local History"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "pipelineWatch.openDashboard" },
+        { "command": "pipelineWatch.addTenant" },
+        { "command": "pipelineWatch.exportHistory" },
+        { "command": "pipelineWatch.clearHistory" }
+      ]
+    },
+    "configuration": {
+      "title": "PipelineWatch",
+      "properties": {
+        "pipelineWatch.pollingInterval": {
+          "type": "number",
+          "default": 60,
+          "minimum": 10,
+          "maximum": 3600,
+          "description": "Auto-refresh interval in seconds (default: 60)"
+        },
+        "pipelineWatch.retentionDays": {
+          "type": "number",
+          "default": 90,
+          "minimum": 7,
+          "maximum": 365,
+          "description": "Days to retain pipeline run history (default: 90)"
+        },
+        "pipelineWatch.dailyReportTime": {
+          "type": "string",
+          "default": "18:00",
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "Time to show daily summary notification (HH:MM, default: 18:00)"
+        },
+        "pipelineWatch.batchSize": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Number of pipelines fetched per batch (default: 5)"
+        },
+        "pipelineWatch.batchDelayMs": {
+          "type": "number",
+          "default": 2500,
+          "minimum": 500,
+          "maximum": 30000,
+          "description": "Delay in milliseconds between batches to avoid API rate limiting (default: 2500)"
+        },
+        "pipelineWatch.batchThreshold": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Minimum number of stale pipelines required to trigger batched loading (default: 10)"
+        },
+        "pipelineWatch.blacklistedWorkspaces": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Workspaces to exclude from pipeline refresh. Accepts workspace IDs (GUIDs) or display names (case-insensitive)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "watch": "tsc -watch -p ./",
+    "package": "node esbuild.js --production",
+    "lint": "eslint src --ext ts"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.5.0",
+    "node-fetch": "^2.7.0",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/node-fetch": "^2.6.11",
+    "@types/sql.js": "^1.4.9",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^10.0.3",
+    "typescript": "^5.3.3"
+  }
+}
