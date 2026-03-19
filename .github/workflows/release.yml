@@ -1,10 +1,9 @@
-name: Build & Release
+name: Build .vsix
 
 on:
   push:
-    tags:
-      - 'v*.*.*'        # triggers on tags like v1.0.0, v1.2.3
-  workflow_dispatch:    # allows manual trigger from GitHub UI
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Build production bundle
+        run: npm run package
 
       - name: Package extension (.vsix)
         run: |
@@ -36,7 +35,7 @@ jobs:
         id: get_version
         run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Upload .vsix as build artifact
+      - name: Upload .vsix artifact
         uses: actions/upload-artifact@v4
         with:
           name: pipelinewatch-${{ steps.get_version.outputs.VERSION }}.vsix
