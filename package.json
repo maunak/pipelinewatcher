@@ -2,7 +2,7 @@
   "name": "pipelinewatcher",
   "displayName": "Fabric Pipeline Watcher",
   "description": "Real-time Microsoft Fabric data pipeline monitor for VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "maunak",
   "author": {
     "name": "Maunak"
