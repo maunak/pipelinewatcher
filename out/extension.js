@@ -28559,6 +28559,39 @@ async function activate(context3) {
         await DashboardPanel.currentPanel.refresh();
       }
     }),
+    // pipelineWatch.manageTenants ───────────────────────────────────────────
+    vscode5.commands.registerCommand("pipelineWatch.manageTenants", async () => {
+      const tenants2 = context3.globalState.get("pipelineWatch.tenants", []);
+      if (tenants2.length === 0) {
+        vscode5.window.showInformationMessage("No tenants configured yet. Use Add Tenant to get started.");
+        return;
+      }
+      const items = tenants2.map((t) => ({
+        label: t.name,
+        description: t.tenantId,
+        detail: "$(trash) Click to delete this tenant",
+        tenant: t
+      }));
+      const picked = await vscode5.window.showQuickPick(items, {
+        title: "Manage Tenants \u2014 select a tenant to delete",
+        placeHolder: "Pick a tenant to remove\u2026",
+        matchOnDescription: true
+      });
+      if (!picked) return;
+      const confirm = await vscode5.window.showWarningMessage(
+        `Delete tenant "${picked.tenant.name}" (${picked.tenant.tenantId})? This cannot be undone.`,
+        { modal: true },
+        "Delete Tenant"
+      );
+      if (confirm !== "Delete Tenant") return;
+      const updated = tenants2.filter((t) => t.tenantId !== picked.tenant.tenantId);
+      await context3.globalState.update("pipelineWatch.tenants", updated);
+      vscode5.window.showInformationMessage(`Tenant "${picked.tenant.name}" removed.`);
+      if (DashboardPanel.currentPanel) {
+        DashboardPanel.currentPanel.reloadTenants();
+        await DashboardPanel.currentPanel.refresh();
+      }
+    }),
     // pipelineWatch.exportHistory ─────────────────────────────────────────────
     vscode5.commands.registerCommand("pipelineWatch.exportHistory", async () => {
       vscode5.window.showInformationMessage(

@@ -41,7 +41,7 @@
     "viewsWelcome": [
       {
         "view": "pipelineWatch.launchView",
-        "contents": "Monitor your Microsoft Fabric data pipelines in real time.\n\n[$(pulse) Open Dashboard](command:pipelineWatch.openDashboard)\n\n[$(add) Add Tenant](command:pipelineWatch.addTenant)\n\n[$(trash) Clear History](command:pipelineWatch.clearHistory)"
+        "contents": "Monitor your Microsoft Fabric data pipelines in real time.\n\n[$(pulse) Open Dashboard](command:pipelineWatch.openDashboard)\n\n[$(add) Add Tenant](command:pipelineWatch.addTenant)\n\n[$(organization) Manage Tenants](command:pipelineWatch.manageTenants)\n\n[$(trash) Clear History](command:pipelineWatch.clearHistory)"
       }
     ],
     "commands": [
@@ -53,8 +53,10 @@
       {
         "command": "pipelineWatch.addTenant",
         "title": "PipelineWatch: Add Tenant"
-      },
-      {
+      },      {
+        "command": "pipelineWatch.manageTenants",
+        "title": "Fabric Pipeline Watcher: Manage Tenants"
+      },      {
         "command": "pipelineWatch.exportHistory",
         "title": "PipelineWatch: Export History (CSV)"
       },
@@ -67,6 +69,7 @@
       "commandPalette": [
         { "command": "pipelineWatch.openDashboard" },
         { "command": "pipelineWatch.addTenant" },
+        { "command": "pipelineWatch.manageTenants" },
         { "command": "pipelineWatch.exportHistory" },
         { "command": "pipelineWatch.clearHistory" }
       ]
