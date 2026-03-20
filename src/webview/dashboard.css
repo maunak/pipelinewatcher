@@ -683,6 +683,12 @@ body.col-resizing * { cursor: col-resize !important; }
   opacity: 0.3;
   cursor:  not-allowed;
 }
+.action-btn.alert-on {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+.action-btn.alert-on:hover {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
 
 /* ── Instant tooltips ────────────────────────────────────────────────────────── */
 .action-btn[data-tooltip] {

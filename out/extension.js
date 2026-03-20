@@ -10761,6 +10761,9 @@ var DashboardPanel = class _DashboardPanel {
       case "setFavoritesOnly":
         if (typeof msg.enabled !== "boolean") return fail("bad enabled");
         break;
+      case "setAlert":
+        if (!isUuid(msg.pipelineId) || !isUuid(msg.workspaceId)) return fail("bad pipelineId/workspaceId");
+        break;
     }
     return true;
   }
@@ -10977,6 +10980,48 @@ var DashboardPanel = class _DashboardPanel {
           this._post({ type: "toast", message: err instanceof Error ? err.message : String(err), level: "error" });
         }
         HistoryPanel2.createOrShow(this._extensionUri, target, this._storage);
+        break;
+      }
+      case "setAlert": {
+        const pl = this._pipelines.find((p) => p.id === msg.pipelineId);
+        if (!pl) break;
+        if (!pl.isFavorite) {
+          this._post({ type: "toast", message: "Add the pipeline to favorites first to enable alerts", level: "warning" });
+          break;
+        }
+        const enablePick = await vscode2.window.showQuickPick(
+          [
+            { label: "$(bell) Enable failure alerts", value: true },
+            { label: "$(bell-slash) Disable alerts", value: false }
+          ],
+          { title: `Alerts: "${pl.displayName}"`, placeHolder: "Choose alert mode" }
+        );
+        if (enablePick === void 0) break;
+        const alertEnabled = enablePick.value;
+        let durationThresholdMs;
+        if (alertEnabled) {
+          const hint = pl.avgDurationMs != null ? ` (avg ${Math.round(pl.avgDurationMs / 6e4)}m)` : "";
+          const raw = await vscode2.window.showInputBox({
+            title: `Duration threshold for "${pl.displayName}"`,
+            prompt: `Alert when run exceeds N minutes${hint}. Leave blank to skip.`,
+            placeHolder: "e.g. 30",
+            validateInput: (v) => {
+              if (v === "" || v == null) return null;
+              const n = Number(v);
+              return isNaN(n) || n <= 0 ? "Enter a positive number of minutes" : null;
+            }
+          });
+          if (raw === void 0) break;
+          if (raw !== "") durationThresholdMs = Math.round(Number(raw) * 6e4);
+        }
+        this._storage.updateFavoriteAlert(msg.pipelineId, alertEnabled, durationThresholdMs);
+        const idx2 = this._pipelines.findIndex((p) => p.id === msg.pipelineId);
+        if (idx2 !== -1) {
+          this._pipelines[idx2] = { ...this._pipelines[idx2], alertEnabled, durationThresholdMs };
+        }
+        this._postState();
+        const alertMsg = alertEnabled ? durationThresholdMs != null ? `Alerts enabled for "${pl.displayName}" (failure + >${Math.round(durationThresholdMs / 6e4)}m)` : `Failure alerts enabled for "${pl.displayName}"` : `Alerts disabled for "${pl.displayName}"`;
+        this._post({ type: "toast", message: alertMsg, level: "success" });
         break;
       }
       case "addTenant":

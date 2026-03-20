@@ -261,6 +261,7 @@ function buildRowHtml(/** @type {any} */ p) {
         <button class="action-btn ${!runId ? 'disabled' : ''}"  data-action="copy"   data-tooltip="Copy Run ID">📋</button>
         <button class="action-btn" data-action="portal"          data-tooltip="Open in Fabric portal">🔗</button>
         <button class="action-btn" data-action="history"         data-tooltip="View history">📊</button>
+        ${p.isFavorite ? `<button class="action-btn ${p.alertEnabled ? 'alert-on' : ''}" data-action="alert" data-tooltip="${p.alertEnabled ? 'Configure / disable alerts' : 'Enable alerts'}">🔔</button>` : ''}
       </div>
     </div>
   </td>
@@ -327,6 +328,10 @@ function handleRowClick(/** @type {MouseEvent} */ e) {
 
     case 'history':
       post({ type: 'viewHistory', pipelineId: pid, workspaceId: wsid, pipelineName: pname, workspaceName: wname });
+      break;
+
+    case 'alert':
+      post({ type: 'setAlert', pipelineId: pid, workspaceId: wsid });
       break;
   }
 }

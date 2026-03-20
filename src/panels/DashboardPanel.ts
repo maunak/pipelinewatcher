@@ -421,6 +421,9 @@ export class DashboardPanel {
       case 'setFavoritesOnly':
         if (typeof msg.enabled !== 'boolean') return fail('bad enabled');
         break;
+      case 'setAlert':
+        if (!isUuid(msg.pipelineId) || !isUuid(msg.workspaceId)) return fail('bad pipelineId/workspaceId');
+        break;
     }
 
     return true;
@@ -653,6 +656,61 @@ export class DashboardPanel {
           this._post({ type: 'toast', message: err instanceof Error ? err.message : String(err), level: 'error' });
         }
         HistoryPanel.createOrShow(this._extensionUri, target, this._storage);
+        break;
+      }
+
+      case 'setAlert': {
+        const pl = this._pipelines.find(p => p.id === msg.pipelineId);
+        if (!pl) break;
+        if (!pl.isFavorite) {
+          this._post({ type: 'toast', message: 'Add the pipeline to favorites first to enable alerts', level: 'warning' });
+          break;
+        }
+
+        // Step 1: enable/disable failure alerts
+        const enablePick = await vscode.window.showQuickPick(
+          [
+            { label: '$(bell) Enable failure alerts', value: true },
+            { label: '$(bell-slash) Disable alerts', value: false },
+          ],
+          { title: `Alerts: "${pl.displayName}"`, placeHolder: 'Choose alert mode' },
+        );
+        if (enablePick === undefined) break; // user cancelled
+
+        const alertEnabled = enablePick.value;
+        let durationThresholdMs: number | undefined;
+
+        // Step 2: optionally set a duration threshold
+        if (alertEnabled) {
+          const hint = pl.avgDurationMs != null
+            ? ` (avg ${Math.round(pl.avgDurationMs / 60000)}m)`
+            : '';
+          const raw = await vscode.window.showInputBox({
+            title: `Duration threshold for "${pl.displayName}"`,
+            prompt: `Alert when run exceeds N minutes${hint}. Leave blank to skip.`,
+            placeHolder: 'e.g. 30',
+            validateInput: v => {
+              if (v === '' || v == null) return null;
+              const n = Number(v);
+              return isNaN(n) || n <= 0 ? 'Enter a positive number of minutes' : null;
+            },
+          });
+          if (raw === undefined) break; // user cancelled
+          if (raw !== '') durationThresholdMs = Math.round(Number(raw) * 60_000);
+        }
+
+        this._storage.updateFavoriteAlert(msg.pipelineId, alertEnabled, durationThresholdMs);
+        const idx2 = this._pipelines.findIndex(p => p.id === msg.pipelineId);
+        if (idx2 !== -1) {
+          this._pipelines[idx2] = { ...this._pipelines[idx2], alertEnabled, durationThresholdMs };
+        }
+        this._postState();
+        const alertMsg = alertEnabled
+          ? durationThresholdMs != null
+            ? `Alerts enabled for "${pl.displayName}" (failure + >${Math.round(durationThresholdMs / 60000)}m)`
+            : `Failure alerts enabled for "${pl.displayName}"`
+          : `Alerts disabled for "${pl.displayName}"`;
+        this._post({ type: 'toast', message: alertMsg, level: 'success' });
         break;
       }
 

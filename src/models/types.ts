@@ -143,7 +143,8 @@ export type WebviewToExtMsg =
   | { type: 'fetchPipelineHistory'; pipelineId: string; workspaceId: string }
   | { type: 'blacklistWorkspace'; workspaceId: string; workspaceName: string }
   | { type: 'setFavoritesOnly'; enabled: boolean }
-  | { type: 'exportDashboardCsv' };
+  | { type: 'exportDashboardCsv' }
+  | { type: 'setAlert'; pipelineId: string; workspaceId: string };
 
 // Messages sent FROM extension TO webview (dashboard)
 export type ExtToDashMsg =
